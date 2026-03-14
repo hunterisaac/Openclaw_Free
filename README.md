@@ -184,82 +184,162 @@ It will print something like `172.22.16.1` or `192.168.x.x`. **Write this number
  
 ---
  
-### Step 4 — Add the Gemini Provider to OpenClaw Config
+### Step 4 — Configure OpenClaw
  
-First, run OpenClaw's onboarding commands to set up the daemon:
+**4a — Run the onboarding command**
+ 
+In your WSL terminal:
  
 ```bash
 curl -fsSL https://openclaw.ai/install.sh | bash
-openclaw onboard --install-daemon
 ```
  
-Follow any prompts it gives you. Once that's done, find your Linux username:
+Follow any prompts it gives you. This sets up OpenClaw as a background service so you don't have to start it manually each time.
+ 
+---
+ 
+**4b — Find your Linux username**
  
 ```bash
 whoami
 ```
  
-It will print something like `john`, `alice` — whatever yours is, keep it in mind.
+It prints something like `john` or `alice`. Write it down — you'll need it in the next step.
  
-Now open your OpenClaw config file:
+---
  
-```bash
-nano ~/.openclaw/config.js
+**4c — Open the OpenClaw web UI**
+ 
+Once the daemon is running, open your browser and go to:
+ 
+```
+http://localhost:18789
 ```
  
-Find the `models` section and merge in the following. **Replace `YOUR_USERNAME` with what `whoami` printed, and replace `YOUR_WINDOWS_IP` with the IP you found in Step 3:**
+This is the OpenClaw web interface.
+ 
+---
+ 
+**4d — Open the config editor**
+ 
+1. In the web UI, click **Config** in the sidebar (or top navigation)
+2. Look for a **Raw** button and click it — this switches from the visual editor to a plain text view where you can paste directly
+ 
+---
+ 
+**4e — Paste the config**
+ 
+Select and delete everything currently in the raw config editor, then paste in the following.
+ 
+You need to make **two replacements** before saving:
+- Replace `YOUR_WINDOWS_IP` with the IP you found in Step 3 (e.g. `172.22.16.1`)
+- Replace every `YOUR_USERNAME` with what `whoami` printed (e.g. `john`)
+ 
+Leave `__OPENCLAW_REDACTED__` as-is — OpenClaw fills those in automatically.
  
 ```js
-models: {
-  mode: 'merge',
-  providers: {
-    'gemini-local': {
-      baseUrl: 'http://YOUR_WINDOWS_IP:8765',  // ← replace with IP from Step 3
-      apiKey: 'none',
-      api: 'openai-completions',
-      authHeader: false,
-      models: [
-        {
-          id: 'gemini-2.0-flash',
-          name: 'Gemini 2.0 Flash (via Browser)',
-          api: 'openai-completions',
-          reasoning: true,
-          input: ['text'],
-          cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
-          contextWindow: 128000,
-          maxTokens: 4096,
-          compat: { supportsStore: false },
-        },
+{
+  models: {
+    mode: 'merge',
+    providers: {
+      'gemini-local': {
+        baseUrl: 'http://YOUR_WINDOWS_IP:8765',
+        apiKey: '__OPENCLAW_REDACTED__',
+        api: 'openai-completions',
+        authHeader: false,
+        models: [
+          {
+            id: 'gemini-2.0-flash',
+            name: 'Gemini 2.0 Flash (via Browser)',
+            api: 'openai-completions',
+            reasoning: true,
+            input: [
+              'text',
+            ],
+            cost: {
+              input: 0,
+              output: 0,
+              cacheRead: 0,
+              cacheWrite: 0,
+            },
+            contextWindow: 128000,
+            maxTokens: 4096,
+            compat: {
+              supportsStore: false,
+            },
+          },
+        ],
+      },
+    },
+  },
+  agents: {
+    defaults: {
+      model: {
+        primary: 'gemini-local/gemini-2.0-flash',
+      },
+      models: {
+        'gemini-local/gemini-2.0-flash': {},
+      },
+      workspace: '/home/YOUR_USERNAME/.openclaw/workspace',
+    },
+    list: [
+      {
+        id: 'main',
+        name: 'main',
+        workspace: '/home/YOUR_USERNAME/.openclaw/workspace',
+        agentDir: '/home/YOUR_USERNAME/.openclaw/agents/main/agent',
+        model: 'gemini-local/gemini-2.0-flash',
+      },
+      {
+        id: 'gemini-local',
+        name: 'gemini-local',
+        workspace: '/home/YOUR_USERNAME/.openclaw/workspace-gemini-local',
+        agentDir: '/home/YOUR_USERNAME/.openclaw/agents/gemini-local/agent',
+      },
+    ],
+  },
+  tools: {
+    profile: 'coding',
+  },
+  commands: {
+    native: 'auto',
+    nativeSkills: 'auto',
+    restart: true,
+    ownerDisplay: 'raw',
+  },
+  session: {
+    dmScope: 'per-channel-peer',
+  },
+  gateway: {
+    port: 18789,
+    mode: 'local',
+    bind: 'loopback',
+    auth: {
+      mode: 'token',
+      token: '__OPENCLAW_REDACTED__',
+    },
+    tailscale: {
+      mode: 'off',
+      resetOnExit: false,
+    },
+    nodes: {
+      denyCommands: [
+        'camera.snap',
+        'camera.clip',
+        'screen.record',
+        'calendar.add',
+        'contacts.add',
+        'reminders.add',
       ],
     },
   },
-},
- 
-agents: {
-  defaults: {
-    model: { primary: 'gemini-local/gemini-2.0-flash' },
-    models: { 'gemini-local/gemini-2.0-flash': {} },
-    workspace: '/home/YOUR_USERNAME/.openclaw/workspace',
+  plugins: {
+    entries: {},
   },
-  list: [
-    {
-      id: 'main',
-      name: 'main',
-      workspace: '/home/YOUR_USERNAME/.openclaw/workspace',
-      agentDir: '/home/YOUR_USERNAME/.openclaw/agents/main/agent',
-      model: 'gemini-local/gemini-2.0-flash',
-    },
-    {
-      id: 'gemini-local',
-      name: 'gemini-local',
-      workspace: '/home/YOUR_USERNAME/.openclaw/workspace-gemini-local',
-      agentDir: '/home/YOUR_USERNAME/.openclaw/agents/gemini-local/agent',
-    },
-  ],
-},
+}
 ```
  
-Save with `Ctrl + O`, `Enter`, then `Ctrl + X`.
+Click **Save** when done.
  
 ---
  
@@ -384,4 +464,5 @@ background.js  ── Chrome extension service worker
   • Returns the response text once Gemini stops typing
 ```
  
+In short: your request travels from your app → Node server → Chrome extension → Gemini tab → back the same way. The whole thing typically takes a few seconds depending on how long Gemini takes to respond.
 In short: your request travels from your app → Node server → Chrome extension → Gemini tab → back the same way. The whole thing typically takes a few seconds depending on how long Gemini takes to respond.
