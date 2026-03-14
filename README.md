@@ -233,7 +233,7 @@ Leave `__OPENCLAW_REDACTED__` as-is — OpenClaw fills those in automatically.
     providers: {
       'gemini-local': {
         baseUrl: 'http://YOUR_WINDOWS_IP:8765',
-        apiKey: '',
+        apiKey: 'none',
         api: 'openai-completions',
         authHeader: false,
         models: [
@@ -305,7 +305,7 @@ Leave `__OPENCLAW_REDACTED__` as-is — OpenClaw fills those in automatically.
     bind: 'loopback',
     auth: {
       mode: 'token',
-      token: '',
+      token: '__OPENCLAW_REDACTED__',
     },
     tailscale: {
       mode: 'off',
