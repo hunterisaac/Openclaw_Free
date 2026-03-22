@@ -1,6 +1,7 @@
 # 🤖 Gemini Automator(requires pro, attempting a workaround)
 
 A Chrome extension + Node.js bridge that lets you send prompts to Gemini over a local HTTP API — no Gemini API key required. It drives your already-logged-in Chrome browser automatically.
+Watch the video ⬇️⬇️
 [![Watch the video](https://img.youtube.com/vi/VXcZvqAth5k/maxresdefault.jpg)](https://youtu.be/VXcZvqAth5k)
 
 
