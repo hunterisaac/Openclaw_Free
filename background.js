@@ -95,18 +95,15 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
 
         chrome.tabs.query({ url: 'https://gemini.google.com/*' }, tabs => {
           if (tabs && tabs.length) {
-            const ids = tabs.map(t => t.id).filter(Boolean);
-            bglog('closing gemini.google.com tabs', ids);
-            chrome.tabs.remove(ids, () => {
-              bglog('closed old tabs, opening new extension tab');
-              chrome.tabs.create({ url: chrome.runtime.getURL('gemini-shell.html') }, newTab => {
-                clearTimeout(clearOpenFlagTimer);
-                _openInProgress = false;
-                sendResponse({ ok: true, opened: true, tabId: newTab.id });
-              });
+            const t = tabs[0];
+            bglog('reusing existing Gemini tab', t.id);
+            chrome.tabs.update(t.id, { active: true }, () => {
+              clearTimeout(clearOpenFlagTimer);
+              _openInProgress = false;
+              sendResponse({ ok: true, reused: true, tabId: t.id });
             });
           } else {
-            bglog('no existing Gemini tabs, opening extension page');
+            bglog('no existing tabs, opening extension page');
             chrome.tabs.create({ url: chrome.runtime.getURL('gemini-shell.html') }, newTab => {
               clearTimeout(clearOpenFlagTimer);
               _openInProgress = false;
