@@ -1,6 +1,7 @@
 const BRIDGE_URL = 'http://localhost:8765';
 let pollInterval = null;
-const POLL_DELAY = 500; 
+const POLL_DELAY = 500;
+let requestsInFlight = 0;
 
 function log(...args) {
   const msg = '[Bridge] ' + args.join(' ');
@@ -38,6 +39,7 @@ async function pollForRequests() {
     log(`Received request id=${request.id} prompt="${request.prompt.substring(0, 80)}${request.prompt.length > 80 ? '…' : ''}"`);
 
     log(`Forwarding request ${request.id} to background.js`);
+    requestsInFlight++;
     chrome.runtime.sendMessage(
       {
         action: 'runGemini',
@@ -47,6 +49,7 @@ async function pollForRequests() {
       (bgResponse) => {
         if (chrome.runtime.lastError) {
           log(`ERROR from background for ${request.id}:`, chrome.runtime.lastError.message);
+          requestsInFlight = Math.max(0, requestsInFlight - 1);
 
           fetch(`${BRIDGE_URL}/response/${request.id}`, {
             method: 'POST',
@@ -78,9 +81,15 @@ async function pollForRequests() {
             }
 
             try {
-              log(`Requesting openNewGemini (force) after delivering ${request.id}`);
-              chrome.runtime.sendMessage({ action: 'openNewGemini', force: true });
+              requestsInFlight = Math.max(0, requestsInFlight - 1);
+              if (requestsInFlight === 0) {
+                log(`Requesting openNewGemini (force) after delivering ${request.id}`);
+                chrome.runtime.sendMessage({ action: 'openNewGemini', force: true });
+              } else {
+                log(`Skipping openNewGemini — ${requestsInFlight} request(s) still in flight`);
+              }
             } catch (e) {
+              requestsInFlight = Math.max(0, requestsInFlight - 1);
               log('Failed to reopen Gemini:', e.message);
             }
           })
